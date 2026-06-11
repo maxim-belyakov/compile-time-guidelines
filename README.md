@@ -86,38 +86,39 @@ property. That property cannot be produced by ordinary code, so the only ways to
 obtain a `VerifiedPost` are `post()` (compile-time verification) and `verify()`
 (runtime verification) — the two functions that apply the brand after the rules
 pass. Because `publish()` accepts only `VerifiedPost`, "publish an unverified
-string" is a compile error, not a code-review hope. Verification is enforced by
+string" is a compile error rather than a convention enforced in code review. Verification is enforced by
 the type system at the single sink rather than by discipline at every call site.
 
 ## Ways to extend TypeScript's type system
 
-One line each; ✅ marks what this solution uses.
+One line each. ✅ marks what this solution uses; for the techniques it doesn't, the note says when I would reach for them.
 
 | Technique | Used | Where / note |
 |---|---|---|
 | Generics | ✅ | `post<S>`, `FindBannedTerm<S>`, `ExceedsLength<S, Max>` |
 | Conditional types | ✅ | every rule check is `T extends U ? ... : ...` |
-| Mapped types | ❌ | not needed — the brand is one computed property, not a mapping |
+| Mapped types | ❌ | the fit here: once `RULES` grows past two rule kinds, derive a per-rule error map (`{ [K in keyof Rules]: ... }`) instead of hand-writing verdicts |
 | Template literal types | ✅ | substring matching and error-message construction |
 | Recursive types | ✅ | `FindBannedTerm` (tuple walk) and `ExceedsLength` (char walk) |
 | Branded / nominal typing | ✅ | `VerifiedPost` via `unique symbol` |
 | Type guards & assertion functions | ✅ | type guard `isVerified()`; no `asserts` function used |
 | `satisfies` | ✅ | `RULES` shape-checked without widening literals |
-| `const` type parameters | ❌ | I use `as const` on the value instead |
-| Declaration merging & module augmentation | ❌ | not used |
+| `const` type parameters | ❌ | `RULES` is declared once with `as const`; `<const T>` earns its keep when callers pass rule objects inline and shouldn't have to annotate |
+| Declaration merging & module augmentation | ❌ | for types you don't own — e.g. augmenting Express's `Request` with a `verifiedPost` field at the API edge |
 | `infer` + variadic tuples | ✅ | `[Head, ...Rest]` term walk, `[...Counter, unknown]` length counter |
-| typescript-eslint custom rules (lint-level) | ❌ | could enforce extra policy in the linter |
-| Language service plugins (editor-level) | ❌ | could surface richer diagnostics in-editor |
-| ts-patch / custom transformers (compile-level) | ❌ | could rewrite or inject checks during emit |
+| typescript-eslint custom rules (lint-level) | ❌ | for policies types can't express — e.g. "only `src/verify.ts` may call `brand()`" |
+| Language service plugins (editor-level) | ❌ | to underline the exact banned word in the editor as you type, instead of a verdict on the whole literal |
+| ts-patch / custom transformers (compile-level) | ❌ | to generate the runtime validator from the types at build time, removing the hand-mirroring between the two layers |
 | `tsc` API as a CI verification step | ✅ | `tsc --noEmit` runs the type-level suite (`tests/type-level.types.ts`) |
 
 ## How would you verify a user-submitted post with this system?
 
-Honestly: you can't compile-time-verify it. The type-level engine evaluates
-string *literal* types, and a user-submitted post is a `string` whose value
-exists only at runtime — the compiler has nothing to inspect, so `post()` is the
-wrong tool. That's by design, not a gap: the runtime bridge (`src/verify.ts`)
-exists for exactly this case. It reads the **same `RULES` object** and mirrors
+A user-submitted post cannot be verified at compile time, and the system is
+designed around that fact rather than against it. The type-level engine
+evaluates string *literal* types; user input is a `string` whose value exists
+only at runtime, so the compiler has nothing to inspect and `post()` is the
+wrong tool. What the type system can still guarantee is that verification is
+unskippable — and the runtime bridge (`src/verify.ts`) covers this case. It reads the **same `RULES` object** and mirrors
 `ValidatePost` rule-for-rule, then applies the same brand on success, so a
 runtime-verified post is indistinguishable from a compile-time-verified one at
 the `publish()` boundary.
