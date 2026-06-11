@@ -24,25 +24,25 @@ type-level suite and `npm test` (the runtime suite) together cover both layers.
 ## How it works
 
 ```
-                       ┌────────────────────┐
+                       ┌─────────────────────┐
                        │    src/rules.ts     │   single source of truth
                        │  RULES (as const    │   bannedTerms + maxLength
                        │       satisfies)    │
                        └─────────┬───────────┘
-              ┌──────────────────┴───────────────────┐
+              ┌──────────────────┴────────────────────┐
               ▼                                       ▼
    ┌─────────────────────┐               ┌─────────────────────┐
    │   compile-time      │               │      runtime        │
    │   src/types.ts      │               │    src/verify.ts    │
    │   ValidatePost<S>   │               │    verify(text)     │
    │   post("literal")   │               │   isVerified(text)  │
-   └──────────┬──────────┘               └──────────┬──────────┘
-              │          both produce a branded      │
-              └──────────────────┬───────────────────┘
-                                 ▼
-                       ┌─────────────────────┐
+   └──────────┬──────────┘               └───────────┬─────────┘
+              │         both produce a branded       │
+              └───────────────────┬──────────────────┘
+                                  ▼
+                       ┌──────────────────────┐
                        │     VerifiedPost     │  unique symbol brand
-                       └──────────┬──────────┘
+                       └──────────┬───────────┘
                                   ▼
                        ┌─────────────────────┐
                        │   src/publish.ts    │  publish(p: VerifiedPost)
