@@ -1,0 +1,16 @@
+{
+  "name": "compile-time-guidelines",
+  "version": "1.0.0",
+  "description": "Compile-time verification of social platform community guidelines using TypeScript's type system",
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3",
+    "vitest": "^3.1.4"
+  }
+}
